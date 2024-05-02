@@ -58,8 +58,8 @@ int main(int argc, char* argv[]) {
 	socklen_t otherSize = sizeof(otherAddress);
 	
 	
-    char OK_MESSAGE[6] = "200 OK";
-    char ERR_MESSAGE[7] = "400 ERR";
+    char OK_MESSAGE[7] = "200 OK";
+    char ERR_MESSAGE[8] = "404 ERR";
 	while(1) {
 		int otherSocket = accept(socketFD, (struct sockaddr *)&otherAddress, &otherSize);
 		// Check socket
@@ -110,10 +110,18 @@ int main(int argc, char* argv[]) {
 				}
 				
 				if(strcmp(request, "rm") == 0) {
-					printf("\tClient requested: Remove file\n");
 					char fileName[1024];
 					sscanf(buffer+readLoc, "%s", fileName);
 					readLoc += strlen(fileName) + 1;
+					
+					char fullPath[2048];
+					getcwd(fullPath, sizeof(fullPath));
+					sprintf(fullPath, "%s/%s", fullPath, fileName);
+					printf("\tClient requested: Remove %s\n", fullPath);
+					int status = remove(fileName);
+					if(status != 0) {
+						write(otherSocket, ERR_MESSAGE, strlen(ERR_MESSAGE));
+					}
 				}
 			}
 		}
