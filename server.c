@@ -119,7 +119,42 @@ int main(int argc, char* argv[]) {
 					sprintf(fullPath, "%s/%s", fullPath, fileName);
 					printf("\tClient requested: Remove %s\n", fullPath);
 					int status = remove(fileName);
-					if(status != 0) {
+					if(status == 0) {
+						 write(otherSocket, OK_MESSAGE, strlen(OK_MESSAGE));
+					}
+					else {
+						write(otherSocket, ERR_MESSAGE, strlen(ERR_MESSAGE));
+					}
+				}
+				
+				if(strcmp(request, "cd") == 0) {
+					char path[1024];
+					sscanf(buffer+readLoc, "%s", path);
+					readLoc += strlen(path) + 1;
+					
+					if(chdir(path) == 0) {
+						 write(otherSocket, OK_MESSAGE, strlen(OK_MESSAGE));
+					}
+					else {
+						write(otherSocket, ERR_MESSAGE, strlen(ERR_MESSAGE));
+					}
+				}
+				
+				if(strcmp(request, "mkdir") == 0) {
+					char name[1024];
+					sscanf(buffer+readLoc, "%s", name);
+					readLoc += strlen(name) + 1;
+					
+					char fullPath[2048];
+					getcwd(fullPath, sizeof(fullPath));
+					sprintf(fullPath, "%s/%s", fullPath, name);
+					printf("\tClient requested: Create %s\n", fullPath);
+					
+					// Create directory with read/write/search permissions for owner and group, and read/search permissions for others
+					if(mkdir(fullPath, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0) {
+						 write(otherSocket, OK_MESSAGE, strlen(OK_MESSAGE));
+					}
+					else {
 						write(otherSocket, ERR_MESSAGE, strlen(ERR_MESSAGE));
 					}
 				}
@@ -156,7 +191,6 @@ void getFile(int socket, char* path) {
 	
 	if(!recievedData) 
 		printf("File does not exist!");
-	
 	close(fileFD);
 }
 
@@ -179,23 +213,35 @@ void sendFile(int socket, char* path) {
 }
 
 char* getListOfFiles() {
-	DIR* d;
-	struct dirent* dir;
-	d = opendir(".");
-	char* files = malloc(sizeof(char)*16384);
-	files[0] = '\0';
-	// Check that directory exists
-	if(d) {
-		while((dir = readdir(d)) != NULL) {
-			// Exclude the current and parent directory
-			if(strcmp(dir->d_name, ".") != 0 && strcmp(dir->d_name, "..") != 0) { 
-				sprintf(files + strlen(files), "%s\n", dir->d_name);
-			}
-		}
-		closedir(d);
-		return files;
-	}
-	else {
-		return "Error getting list of files!\n";
-	}
+    DIR* d;
+    struct dirent* dir;
+    d = opendir(".");
+    char* files = malloc(sizeof(char)*16384);
+    files[0] = '\0';
+    // Check that directory exists
+    if(d) {
+        while((dir = readdir(d)) != NULL) {
+            // Exclude the current and parent directory
+            if(strcmp(dir->d_name, ".") != 0 && strcmp(dir->d_name, "..") != 0) { 
+                struct stat fileStat;
+                stat(dir->d_name, &fileStat);
+                // Check if it is a file or a directory
+                if (S_ISDIR(fileStat.st_mode)) {
+                    sprintf(files + strlen(files), "%s/\n", dir->d_name);
+                }
+                else if (fileStat.st_mode & S_IXUSR) {
+                    sprintf(files + strlen(files), "%s.exe\n", dir->d_name);
+                
+                } 
+                else {
+                    sprintf(files + strlen(files), "%s\n", dir->d_name);
+                }
+            }
+        }
+        closedir(d);
+        return files;
+    }
+    else {
+        return "Error getting list of files!\n";
+    }
 }

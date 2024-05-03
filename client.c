@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
 			fgets(newFileName, sizeof(newFileName), stdin);
 			newFileName[strlen(newFileName)-1] = '\0';
 			
-			printf("Downloading %s as %s\n\n", fileName, newFileName);
+			printf("\tDownloading %s as %s\n\n", fileName, newFileName);
 			
 		    // Attempt to connect to the server    
 		    connect(sockFD, (struct sockaddr *)&address, sizeof(address));
@@ -158,11 +158,65 @@ int main(int argc, char* argv[]) {
 			getCharFromServer(sockFD, response);
 			
 			if(strcmp(response, ERR_MESSAGE) == 0) {
-				printf("Error removing file from server!\n");
+				printf("\tError removing file from server!\n");
 			} else {
-				printf("File removed from server\n");
+				printf("\tFile removed from server\n");
 			}
 			close(sockFD);
+		}
+		
+		if(strcmp(input, "cd\n") == 0) {
+			char path[1024];
+			printf("Enter path: ");
+			fgets(path, sizeof(path), stdin);
+			
+			// Remove new line from path
+			path[strlen(path)-1] = '\0';
+			
+			
+		    // Attempt to connect to the server    
+		    connect(sockFD, (struct sockaddr *)&address, sizeof(address));
+		    
+		    // Ask server to change directory
+			sprintf(message, "POST cd\n%s", path);
+			write(sockFD, message, strlen(message));
+			
+			getCharFromServer(sockFD, response);
+			if(strcmp(response, ERR_MESSAGE) == 0) {
+				printf("\tError changing directory!\n");
+			} else {
+				printf("\tDirectory successfully moved to: %s\n", path);
+			}
+			
+			close(sockFD);
+			
+		}
+		
+		if(strcmp(input, "mkdir\n") == 0) {
+			char name[1024];
+			printf("Enter directory name: ");
+			fgets(name, sizeof(name), stdin);
+			
+			// Remove new line from name
+			name[strlen(name)-1] = '\0';
+			
+			
+		    // Attempt to connect to the server    
+		    connect(sockFD, (struct sockaddr *)&address, sizeof(address));
+		    
+		    // Ask server to create directory
+			sprintf(message, "POST mkdir\n%s", name);
+			write(sockFD, message, strlen(message));
+			
+			getCharFromServer(sockFD, response);
+			if(strcmp(response, ERR_MESSAGE) == 0) {
+				printf("\tError creating directory!\n");
+			} else {
+				printf("\tSuccessfully created directory: %s/\n", name);
+			}
+			
+			close(sockFD);
+			
 		}
 	}
 
@@ -182,7 +236,7 @@ void uploadFileToServer(int sockFD, char* fileName) {
 		
 		printf("\tServer recieved: %s\n", fileName);
 	} else {
-		printf("\tRequested does not exist\n");
+		printf("\tRequested file does not exist\n");
 	}
 }
 
