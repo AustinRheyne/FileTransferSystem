@@ -7,9 +7,9 @@ This is an FTP I am currently working on using C.
   - Upload files
   - Download files
   - Remove files
+  - Custom directories
 
 ## Features to be implemented:
-  - Custom directories
   - Upload directory
   - Download directory
   - Move files
